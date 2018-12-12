@@ -153,7 +153,7 @@ class stats_window():
         self.ram_axl.plot(x_list, y_list, color='purple')
 
     def ping_ip_val(self):
-        ip_to_ping = self.pingReq.get("1.0", END)
+        ip_to_ping = self.pingReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
         ping_answer = monitor.send_messages(self.host, 'ping', ip_to_ping)
@@ -167,7 +167,7 @@ class stats_window():
         self.root.after(350, self.change_color, self.pingAnswer)
 
     def check_port_transportation(self):
-        port_to_check = self.portReq.get("1.0", END)
+        port_to_check = self.portReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
         port_answer = monitor.send_messages(self.host, 'port', port_to_check)
@@ -181,7 +181,7 @@ class stats_window():
         self.root.after(350, self.change_color, self.portAnswer)
 
     def execute_command(self):
-        command_to_execute = self.commandReq.get("1.0", END)
+        command_to_execute = self.commandReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
         command_answer = monitor.send_messages(self.host, 'command', command_to_execute)
