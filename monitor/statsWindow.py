@@ -3,7 +3,7 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as dt
-import monitor
+import sendMessage
 import threading
 
 
@@ -104,7 +104,7 @@ class stats_window():
     def get_cpu_val(self, i, x_list, y_list):
         self.lock.acquire()
         try:
-            cpu_val = float(monitor.send_messages(self.host, 'cpu'))
+            cpu_val = float(sendMessage.send_messages(self.host, 'cpu'))
         except OSError as e:
             print ('invalid cpu val - %s' % cpu_val)
             if sys.platform.startswith('win') and isinstance(e, WindowsError) and e.winerror == 10061:
@@ -135,7 +135,7 @@ class stats_window():
 
     def get_ram_val(self, i, x_list, y_list):
         self.lock.acquire()
-        ram_val = monitor.send_messages(self.host, 'ram')
+        ram_val = sendMessage.send_messages(self.host, 'ram')
         self.lock.release()
 
         if ram_val == "[WinError 10061] No connection could be made because the target machine actively refused it":
@@ -156,7 +156,7 @@ class stats_window():
         ip_to_ping = self.pingReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
-        ping_answer = monitor.send_messages(self.host, 'ping', ip_to_ping)
+        ping_answer = sendMessage.send_messages(self.host, 'ping', ip_to_ping)
         self.lock.release()
 
         self.pingAnswer.config(state=NORMAL)
@@ -170,7 +170,7 @@ class stats_window():
         port_to_check = self.portReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
-        port_answer = monitor.send_messages(self.host, 'port', port_to_check)
+        port_answer = sendMessage.send_messages(self.host, 'port', port_to_check)
         self.lock.release()
 
         self.portAnswer.config(state=NORMAL)
@@ -184,7 +184,7 @@ class stats_window():
         command_to_execute = self.commandReq.get("1.0", END).rstrip()
 
         self.lock.acquire()
-        command_answer = monitor.send_messages(self.host, 'command', command_to_execute)
+        command_answer = sendMessage.send_messages(self.host, 'command', command_to_execute)
         self.lock.release()
 
         self.commandAnswer.config(state=NORMAL)
