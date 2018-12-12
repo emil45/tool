@@ -58,8 +58,8 @@ class stats_window():
             self.plt.subplots_adjust(bottom=0.3, hspace=1)
 
             # create ping check
-            self.pingEntry = Entry(self.frame, text="hostname/IP")
-            self.pingEntry.grid(row=4,column=0)
+            self.pingReq = Text(self.frame, height=1, width=15)
+            self.pingReq.grid(row=4,column=0)
             self.pingButton = Button(self.frame, text="check ping availability", command=self.ping_ip_val)
             self.pingButton.grid(row=4, column=1)
             self.pingAnswer = Text(self.frame, height=8, width=35)
@@ -67,8 +67,8 @@ class stats_window():
             self.pingAnswer.config(state=DISABLED)
 
             # create port transportation get
-            self.portEntry = Entry(self.frame, text="port number")
-            self.portEntry.grid(row=4, column=2)
+            self.portReq = Text(self.frame, height=1, width=15)
+            self.portReq.grid(row=4, column=2)
             self.portButton = Button(self.frame, text="check port transportation", command=self.check_port_transportation)
             self.portButton.grid(row=4, column=3)
             self.portAnswer = Text(self.frame, height=8, width=35)
@@ -76,8 +76,8 @@ class stats_window():
             self.portAnswer.config(state=DISABLED)
 
             # create command
-            self.commandEntry = Entry(self.frame, text="command to make")
-            self.commandEntry.grid(row=4, column=4)
+            self.commandReq = Text(self.frame, height=1, width=15)
+            self.commandReq.grid(row=4, column=4)
             self.commandButton = Button(self.frame, text="execute command", command=self.execute_command)
             self.commandButton.grid(row=4, column=5)
             self.commandAnswer = Text(self.frame, height=8, width=35)
@@ -104,14 +104,22 @@ class stats_window():
     def get_cpu_val(self, i, x_list, y_list):
         self.lock.acquire()
         try:
-            cpu_val = monitor.send_messages(self.host, 'cpu')
+            cpu_val = float(monitor.send_messages(self.host, 'cpu'))
         except OSError as e:
+            print ('invalid cpu val - %s' % cpu_val)
             if sys.platform.startswith('win') and isinstance(e, WindowsError) and e.winerror == 10061:
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
                 self.lock.release()
                 self.exit()
                 pass
+        except Exception as e:
+            print ('invalid cpu val')
+            message_to_log = str.format("%s is unavailable" % self.host)
+            self.parent.add_message_to_log(message_to_log)
+            self.lock.release()
+            self.exit()
+            pass
         self.lock.release()
 
         y_list.append(cpu_val)
@@ -145,7 +153,7 @@ class stats_window():
         self.ram_axl.plot(x_list, y_list, color='purple')
 
     def ping_ip_val(self):
-        ip_to_ping = self.pingEntry.get()
+        ip_to_ping = self.pingReq.get("1.0", END)
 
         self.lock.acquire()
         ping_answer = monitor.send_messages(self.host, 'ping', ip_to_ping)
@@ -159,7 +167,7 @@ class stats_window():
         self.root.after(350, self.change_color, self.pingAnswer)
 
     def check_port_transportation(self):
-        port_to_check = self.portEntry.get()
+        port_to_check = self.portReq.get("1.0", END)
 
         self.lock.acquire()
         port_answer = monitor.send_messages(self.host, 'port', port_to_check)
@@ -173,7 +181,7 @@ class stats_window():
         self.root.after(350, self.change_color, self.portAnswer)
 
     def execute_command(self):
-        command_to_execute = self.commandEntry.get()
+        command_to_execute = self.commandReq.get("1.0", END)
 
         self.lock.acquire()
         command_answer = monitor.send_messages(self.host, 'command', command_to_execute)
@@ -195,11 +203,11 @@ class stats_window():
         self.parent.add_message_to_log(message_to_log)
         try:
             try:
-                self.pingEntry.delete(0, END)
-                self.portEntry.delete(0, END)
-                self.commandEntry.delete(0, END)
+                self.pingReq.delete(0, END)
+                self.portReq.delete(0, END)
+                self.commandReq.delete(0, END)
             except Exception as e:
-                if e == "'stats_window' object has no attribute 'pingEntry'":
+                if e == "'stats_window' object has no attribute 'pingReq'":
                     pass
             self.root.destroy()
             self.parent.remove_from_open_stats_win(self.winName)

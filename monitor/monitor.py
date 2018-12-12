@@ -5,6 +5,7 @@ import sys
 
 def ts(s, message, func):
     s.send(message.encode())
+    #s.settimeout(0.2)
     data = s.recv(1024).decode()
     j = json.loads(data)
     return j[func]
@@ -27,4 +28,5 @@ def send_messages(host, func, params='True'):
             if isinstance(e, WindowsError) and e.winerror == 10061:
                 raise e
     except Exception as e:
+        print (e)
         return "error detected"

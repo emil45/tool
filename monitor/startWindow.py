@@ -36,7 +36,7 @@ class StartWindow:
 
         self.openStatsWin = {}
 
-        ip_list = findIpsOnNetwork.find_network_ips(1, 10)
+        ip_list = findIpsOnNetwork.find_network_ips()
         if len(ip_list)==0:
             self.add_message_to_log("no agents found")
 
