@@ -1,2 +1,3 @@
 pywin32==224
 psutil==5.4.8
+matplotlib
