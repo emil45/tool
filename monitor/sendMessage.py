@@ -1,6 +1,7 @@
 import socket
 import json
 import sys
+import configparser
 
 
 def ts(s, message, func):
@@ -17,8 +18,10 @@ def create_message(func, params):
 
 def send_messages(host, func, params='True'):
     try:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+        port = int(config['DEFAULT']['PORT'])
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        port = 10000
         s.connect((host, port))
         m = create_message(func, params)
         return ts(s, m, func)

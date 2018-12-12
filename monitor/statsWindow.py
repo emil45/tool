@@ -4,13 +4,10 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as dt
 import sendMessage
-import threading
 
 
 class stats_window():
     def __init__(self, win_name, parent):
-
-        self.lock = threading.Lock()
         self.parent = parent
         self.parent.add_to_open_stats_win(win_name,self)
         self.winName = win_name
@@ -37,6 +34,7 @@ class stats_window():
             self.plt.setp(self.cpu_axl.xaxis.get_majorticklabels(), rotation=80)
             self.cpuCanvas = FigureCanvasTkAgg(self.cpu_fig, self.frame)
             self.cpuCanvas.get_tk_widget().grid(row=0, column=0, columnspan=8)
+
             self.cpu_animation = animation.FuncAnimation(self.cpu_fig, self.get_cpu_val, fargs=(cpu_x_list, cpu_y_list),
                                                          interval=1000, blit=False)
 
@@ -93,7 +91,6 @@ class stats_window():
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
                 self.exit()
-                self.lock.release()
                 pass
 
         # exit function
@@ -101,8 +98,8 @@ class stats_window():
 
         self.root.focus_force()
 
+
     def get_cpu_val(self, i, x_list, y_list):
-        self.lock.acquire()
         try:
             cpu_val = float(sendMessage.send_messages(self.host, 'cpu'))
         except OSError as e:
@@ -110,17 +107,14 @@ class stats_window():
             if sys.platform.startswith('win') and isinstance(e, WindowsError) and e.winerror == 10061:
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
-                self.lock.release()
                 self.exit()
                 pass
         except Exception as e:
             print ('invalid cpu val')
             message_to_log = str.format("%s is unavailable" % self.host)
             self.parent.add_message_to_log(message_to_log)
-            self.lock.release()
             self.exit()
             pass
-        self.lock.release()
 
         y_list.append(cpu_val)
         x_list.append(dt.datetime.now().strftime('%H:%M:%S'))
@@ -134,9 +128,7 @@ class stats_window():
         self.cpu_axl.plot(x_list, y_list, color='blue')
 
     def get_ram_val(self, i, x_list, y_list):
-        self.lock.acquire()
         ram_val = sendMessage.send_messages(self.host, 'ram')
-        self.lock.release()
 
         if ram_val == "[WinError 10061] No connection could be made because the target machine actively refused it":
             self.exit()
@@ -154,10 +146,7 @@ class stats_window():
 
     def ping_ip_val(self):
         ip_to_ping = self.pingReq.get("1.0", END).rstrip()
-
-        self.lock.acquire()
         ping_answer = sendMessage.send_messages(self.host, 'ping', ip_to_ping)
-        self.lock.release()
 
         self.pingAnswer.config(state=NORMAL)
         self.pingAnswer.delete(1.0, END)
@@ -168,10 +157,7 @@ class stats_window():
 
     def check_port_transportation(self):
         port_to_check = self.portReq.get("1.0", END).rstrip()
-
-        self.lock.acquire()
         port_answer = sendMessage.send_messages(self.host, 'port', port_to_check)
-        self.lock.release()
 
         self.portAnswer.config(state=NORMAL)
         self.portAnswer.delete(1.0, END)
@@ -182,10 +168,7 @@ class stats_window():
 
     def execute_command(self):
         command_to_execute = self.commandReq.get("1.0", END).rstrip()
-
-        self.lock.acquire()
         command_answer = sendMessage.send_messages(self.host, 'command', command_to_execute)
-        self.lock.release()
 
         self.commandAnswer.config(state=NORMAL)
         self.commandAnswer.delete(1.0, END)
