@@ -18,7 +18,7 @@ BUFFER_SIZE = 1024
 logging.basicConfig(filename=r'c:\code\tool\agent\1.log', filemode="w", level=logging.DEBUG)
 
 
-class AppServerSvc(win32serviceutil.ServiceFramework):
+class AgentService(win32serviceutil.ServiceFramework):
     _svc_name_ = "ToolAgent"
     _svc_display_name_ = "Tool Agent Service"
 
