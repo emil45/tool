@@ -5,8 +5,6 @@ import logging
 import subprocess
 import threading
 
-# from . import settings
-
 import win32serviceutil
 import win32service
 import win32event
@@ -15,7 +13,7 @@ import psutil
 
 TCP_IP = '0.0.0.0'
 TCP_PORT = 10000
-BUFFER_SIZE = 1024  # Normally 1024, but we want fast response
+BUFFER_SIZE = 1024
 
 logging.basicConfig(filename=r'c:\code\tool\agent\1.log', filemode="w", level=logging.DEBUG)
 
@@ -60,12 +58,11 @@ class AppServerSvc(win32serviceutil.ServiceFramework):
             return False
 
     def run_command(self, command):
-        subprocess.Popen
+        return subprocess.Popen(command, stdout=subprocess.PIPE).stdout.read()
 
     def is_port_free(self, port):
-        return len(subprocess.Popen("netstat -lant | awk '{print $4}' | grep 0.0.0.0:" + str(port),
-                                    shell=True,
-                                    stdout=subprocess.PIPE).stdout.read()) > 0
+        return len(subprocess.Popen(f'netstat -na | findstr "\<0.0.0.0:{port}\>"',
+                                    shell=True, stdout=subprocess.PIPE).stdout.read()) > 0
 
     def analyze_monitor_message(self, binary_monitor_request):
         monitor_request = json.loads(binary_monitor_request)
