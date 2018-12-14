@@ -34,20 +34,33 @@ class StartWindow:
         self.logScrollbar.config(command=self.log.yview)
         self.log.config(yscrollcommand=self.logScrollbar.set)
 
+        # update list button
+        self.commandButton = mtTkinter.Button(self.frame, text="update connections list", command=self.update_connection_list)
+        self.commandButton.grid(row=3, column=0, sticky="ew")
+
         self.openStatsWin = {}
 
-        ip_list = findIpsOnNetwork.find_network_ips(1, 10)
-        if len(ip_list)==0:
-            self.add_message_to_log("no agents found")
-
-        for item in ip_list:
-            self.listbox.insert(mtTkinter.END, item)
+        self.update_connection_list()
+        self.log.delete("1.0", mtTkinter.END)
 
         self.listbox.bind("<Double-Button-1>", self.clicked_on_ip)
 
         self.root.protocol("WM_DELETE_WINDOW", self.exit)
 
         self.root.mainloop()
+
+    def update_connection_list(self):
+
+        self.listbox.delete(0, mtTkinter.END)
+
+        ip_list = findIpsOnNetwork.find_network_ips()
+        if len(ip_list) == 0:
+            self.add_message_to_log("no agents found")
+
+        for item in ip_list:
+            self.listbox.insert(mtTkinter.END, item)
+
+        self.add_message_to_log("updated connected ip list")
 
     def exit(self):
         print('close main win')

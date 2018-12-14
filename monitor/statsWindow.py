@@ -3,14 +3,11 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as dt
-import monitor
-import threading
+import sendMessage
 
 
 class stats_window():
     def __init__(self, win_name, parent):
-
-        self.lock = threading.Lock()
         self.parent = parent
         self.parent.add_to_open_stats_win(win_name,self)
         self.winName = win_name
@@ -37,6 +34,7 @@ class stats_window():
             self.plt.setp(self.cpu_axl.xaxis.get_majorticklabels(), rotation=80)
             self.cpuCanvas = FigureCanvasTkAgg(self.cpu_fig, self.frame)
             self.cpuCanvas.get_tk_widget().grid(row=0, column=0, columnspan=8)
+
             self.cpu_animation = animation.FuncAnimation(self.cpu_fig, self.get_cpu_val, fargs=(cpu_x_list, cpu_y_list),
                                                          interval=1000, blit=False)
 
@@ -58,8 +56,8 @@ class stats_window():
             self.plt.subplots_adjust(bottom=0.3, hspace=1)
 
             # create ping check
-            self.pingEntry = Entry(self.frame, text="hostname/IP")
-            self.pingEntry.grid(row=4,column=0)
+            self.pingReq = Text(self.frame, height=1, width=15)
+            self.pingReq.grid(row=4,column=0)
             self.pingButton = Button(self.frame, text="check ping availability", command=self.ping_ip_val)
             self.pingButton.grid(row=4, column=1)
             self.pingAnswer = Text(self.frame, height=8, width=35)
@@ -67,8 +65,8 @@ class stats_window():
             self.pingAnswer.config(state=DISABLED)
 
             # create port transportation get
-            self.portEntry = Entry(self.frame, text="port number")
-            self.portEntry.grid(row=4, column=2)
+            self.portReq = Text(self.frame, height=1, width=15)
+            self.portReq.grid(row=4, column=2)
             self.portButton = Button(self.frame, text="check port transportation", command=self.check_port_transportation)
             self.portButton.grid(row=4, column=3)
             self.portAnswer = Text(self.frame, height=8, width=35)
@@ -76,8 +74,8 @@ class stats_window():
             self.portAnswer.config(state=DISABLED)
 
             # create command
-            self.commandEntry = Entry(self.frame, text="command to make")
-            self.commandEntry.grid(row=4, column=4)
+            self.commandReq = Text(self.frame, height=1, width=15)
+            self.commandReq.grid(row=4, column=4)
             self.commandButton = Button(self.frame, text="execute command", command=self.execute_command)
             self.commandButton.grid(row=4, column=5)
             self.commandAnswer = Text(self.frame, height=8, width=35)
@@ -93,7 +91,6 @@ class stats_window():
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
                 self.exit()
-                self.lock.release()
                 pass
 
         # exit function
@@ -101,18 +98,23 @@ class stats_window():
 
         self.root.focus_force()
 
+
     def get_cpu_val(self, i, x_list, y_list):
-        self.lock.acquire()
         try:
-            cpu_val = monitor.send_messages(self.host, 'cpu')
+            cpu_val = float(sendMessage.send_messages(self.host, 'cpu'))
         except OSError as e:
+            print ('invalid cpu val - %s' % cpu_val)
             if sys.platform.startswith('win') and isinstance(e, WindowsError) and e.winerror == 10061:
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
-                self.lock.release()
                 self.exit()
                 pass
-        self.lock.release()
+        except Exception as e:
+            print ('invalid cpu val')
+            message_to_log = str.format("%s is unavailable" % self.host)
+            self.parent.add_message_to_log(message_to_log)
+            self.exit()
+            pass
 
         y_list.append(cpu_val)
         x_list.append(dt.datetime.now().strftime('%H:%M:%S'))
@@ -126,9 +128,7 @@ class stats_window():
         self.cpu_axl.plot(x_list, y_list, color='blue')
 
     def get_ram_val(self, i, x_list, y_list):
-        self.lock.acquire()
-        ram_val = monitor.send_messages(self.host, 'ram')
-        self.lock.release()
+        ram_val = sendMessage.send_messages(self.host, 'ram')
 
         if ram_val == "[WinError 10061] No connection could be made because the target machine actively refused it":
             self.exit()
@@ -145,11 +145,8 @@ class stats_window():
         self.ram_axl.plot(x_list, y_list, color='purple')
 
     def ping_ip_val(self):
-        ip_to_ping = self.pingEntry.get()
-
-        self.lock.acquire()
-        ping_answer = monitor.send_messages(self.host, 'ping', ip_to_ping)
-        self.lock.release()
+        ip_to_ping = self.pingReq.get("1.0", END).rstrip()
+        ping_answer = sendMessage.send_messages(self.host, 'ping', ip_to_ping)
 
         self.pingAnswer.config(state=NORMAL)
         self.pingAnswer.delete(1.0, END)
@@ -159,11 +156,8 @@ class stats_window():
         self.root.after(350, self.change_color, self.pingAnswer)
 
     def check_port_transportation(self):
-        port_to_check = self.portEntry.get()
-
-        self.lock.acquire()
-        port_answer = monitor.send_messages(self.host, 'port', port_to_check)
-        self.lock.release()
+        port_to_check = self.portReq.get("1.0", END).rstrip()
+        port_answer = sendMessage.send_messages(self.host, 'port', port_to_check)
 
         self.portAnswer.config(state=NORMAL)
         self.portAnswer.delete(1.0, END)
@@ -173,11 +167,8 @@ class stats_window():
         self.root.after(350, self.change_color, self.portAnswer)
 
     def execute_command(self):
-        command_to_execute = self.commandEntry.get()
-
-        self.lock.acquire()
-        command_answer = monitor.send_messages(self.host, 'command', command_to_execute)
-        self.lock.release()
+        command_to_execute = self.commandReq.get("1.0", END).rstrip()
+        command_answer = sendMessage.send_messages(self.host, 'command', command_to_execute)
 
         self.commandAnswer.config(state=NORMAL)
         self.commandAnswer.delete(1.0, END)
@@ -195,11 +186,11 @@ class stats_window():
         self.parent.add_message_to_log(message_to_log)
         try:
             try:
-                self.pingEntry.delete(0, END)
-                self.portEntry.delete(0, END)
-                self.commandEntry.delete(0, END)
+                self.pingReq.delete(0, END)
+                self.portReq.delete(0, END)
+                self.commandReq.delete(0, END)
             except Exception as e:
-                if e == "'stats_window' object has no attribute 'pingEntry'":
+                if e == "'stats_window' object has no attribute 'pingReq'":
                     pass
             self.root.destroy()
             self.parent.remove_from_open_stats_win(self.winName)
