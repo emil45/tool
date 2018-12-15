@@ -53,7 +53,7 @@ class StartWindow:
 
         self.listbox.delete(0, mtTkinter.END)
 
-        ip_list = findIpsOnNetwork.find_network_ips()
+        ip_list = findIpsOnNetwork.find_network_ips(self)
         if len(ip_list) == 0:
             self.add_message_to_log("no agents found")
 

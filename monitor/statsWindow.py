@@ -4,6 +4,7 @@ import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import datetime as dt
 import sendMessage
+import threading
 
 
 class stats_window():
@@ -19,7 +20,16 @@ class stats_window():
         self.plt = plt
 
         self.frame = Frame(self.root)
-        self.frame.grid(row=0, column=0)
+        self.frame.grid(row=0, column=0, columnspan=3)
+
+        self.pingFrame = Frame(self.root)
+        self.pingFrame.grid(row=1, column=0)
+
+        self.portFrame = Frame(self.root)
+        self.portFrame.grid(row=1, column=1)
+
+        self.commandFrame = Frame(self.root)
+        self.commandFrame.grid(row=1, column=2)
 
         try:
 
@@ -56,33 +66,33 @@ class stats_window():
             self.plt.subplots_adjust(bottom=0.3, hspace=1)
 
             # create ping check
-            self.pingReq = Text(self.frame, height=1, width=15)
+            self.pingReq = Text(self.pingFrame, height=1, width=15)
             self.pingReq.grid(row=4,column=0)
-            self.pingButton = Button(self.frame, text="check ping availability", command=self.ping_ip_val)
+            self.pingButton = Button(self.pingFrame, text="check ping availability", command=self.ping_ip_val)
             self.pingButton.grid(row=4, column=1)
-            self.pingAnswer = Text(self.frame, height=8, width=35)
+            self.pingAnswer = Text(self.pingFrame, height=8, width=35)
             self.pingAnswer.grid(row=5, column=0, columnspan=2)
             self.pingAnswer.config(state=DISABLED)
 
             # create port transportation get
-            self.portReq = Text(self.frame, height=1, width=15)
+            self.portReq = Text(self.portFrame, height=1, width=15)
             self.portReq.grid(row=4, column=2)
-            self.portButton = Button(self.frame, text="check port transportation", command=self.check_port_transportation)
+            self.portButton = Button(self.portFrame, text="check port transportation", command=self.check_port_transportation)
             self.portButton.grid(row=4, column=3)
-            self.portAnswer = Text(self.frame, height=8, width=35)
+            self.portAnswer = Text(self.portFrame, height=8, width=35)
             self.portAnswer.grid(row=5, column=2, columnspan=2)
             self.portAnswer.config(state=DISABLED)
 
             # create command
-            self.commandReq = Text(self.frame, height=1, width=15)
+            self.commandReq = Text(self.commandFrame, height=1, width=15)
             self.commandReq.grid(row=4, column=4)
-            self.commandButton = Button(self.frame, text="execute command", command=self.execute_command)
+            self.commandButton = Button(self.commandFrame, text="execute command", command=self.execute_command)
             self.commandButton.grid(row=4, column=5)
-            self.commandAnswer = Text(self.frame, height=8, width=35)
-            self.commandAnswer.grid(row=5, column=4, columnspan=2, sticky="nsew", padx=2, pady=2)
+            self.commandAnswer = Text(self.commandFrame, height=8, width=35)
+            self.commandAnswer.grid(row=5, column=4, columnspan=2) # sticky="nsew", padx=2, pady=2
             # command scrollbar
-            self.commandAnswerScrollbar = Scrollbar(self.commandAnswer, orient="vertical")
-            self.commandAnswerScrollbar.pack(side=RIGHT, fill=Y)
+            self.commandAnswerScrollbar = Scrollbar(self.commandFrame, orient="vertical")
+            self.commandAnswerScrollbar.grid(row=5, column=6, sticky="news")
             self.commandAnswerScrollbar.config(command=self.commandAnswer.yview)
             self.commandAnswer.config(state=DISABLED, yscrollcommand=self.commandAnswerScrollbar.set)
 
@@ -103,18 +113,17 @@ class stats_window():
         try:
             cpu_val = float(sendMessage.send_messages(self.host, 'cpu'))
         except OSError as e:
-            print ('invalid cpu val - %s' % cpu_val)
             if sys.platform.startswith('win') and isinstance(e, WindowsError) and e.winerror == 10061:
                 message_to_log = str.format("%s is unavailable" % self.host)
                 self.parent.add_message_to_log(message_to_log)
                 self.exit()
-                pass
+                return
         except Exception as e:
             print ('invalid cpu val')
             message_to_log = str.format("%s is unavailable" % self.host)
             self.parent.add_message_to_log(message_to_log)
             self.exit()
-            pass
+            return
 
         y_list.append(cpu_val)
         x_list.append(dt.datetime.now().strftime('%H:%M:%S'))
@@ -145,28 +154,52 @@ class stats_window():
         self.ram_axl.plot(x_list, y_list, color='purple')
 
     def ping_ip_val(self):
+        ping_thread = threading.Thread(target=self.thread_ping_ip_val)
+        ping_thread.start()
+
+    def thread_ping_ip_val(self):
+        self.pingAnswer.config({"background": "light yellow"})
         ip_to_ping = self.pingReq.get("1.0", END).rstrip()
         ping_answer = sendMessage.send_messages(self.host, 'ping', ip_to_ping)
+        if ping_answer:
+            ping_answer = "available"
+        else:
+            ping_answer = "unavailable"
 
         self.pingAnswer.config(state=NORMAL)
         self.pingAnswer.delete(1.0, END)
         self.pingAnswer.insert(END, ping_answer)
         self.pingAnswer.config(state=DISABLED)
-        self.pingAnswer.config({"background": "light cyan"})
-        self.root.after(350, self.change_color, self.pingAnswer)
+        self.pingAnswer.config({"background": "white"})
 
     def check_port_transportation(self):
+        port_thread = threading.Thread(target=self.thread_check_port_transportation)
+        port_thread.start()
+
+    def thread_check_port_transportation(self):
+        self.portAnswer.config({"background": "light yellow"})
         port_to_check = self.portReq.get("1.0", END).rstrip()
-        port_answer = sendMessage.send_messages(self.host, 'port', port_to_check)
+        if not port_to_check.isdigit():
+            port_answer = "unknown port"
+        else:
+            port_answer = sendMessage.send_messages(self.host, 'port', port_to_check)
+            if port_answer:
+                port_answer = "active port"
+            else:
+                port_answer = "unavailable port"
 
         self.portAnswer.config(state=NORMAL)
         self.portAnswer.delete(1.0, END)
         self.portAnswer.insert(END, port_answer)
         self.portAnswer.config(state=DISABLED)
-        self.portAnswer.config({"background": "light cyan"})
-        self.root.after(350, self.change_color, self.portAnswer)
+        self.portAnswer.config({"background": "white"})
 
     def execute_command(self):
+        commnd_thread = threading.Thread(target=self.thread_execute_command)
+        commnd_thread.start()
+
+    def thread_execute_command(self):
+        self.commandAnswer.config({"background": "light yellow"})
         command_to_execute = self.commandReq.get("1.0", END).rstrip()
         command_answer = sendMessage.send_messages(self.host, 'command', command_to_execute)
 
@@ -174,16 +207,12 @@ class stats_window():
         self.commandAnswer.delete(1.0, END)
         self.commandAnswer.insert(END, command_answer)
         self.commandAnswer.config(state=DISABLED)
-        self.commandAnswer.config({"background": "light cyan"})
-        self.root.after(350, self.change_color, self.commandAnswer)
-
-    @staticmethod
-    def change_color(text_box):
-        text_box.config({"background": "white"})
+        self.commandAnswer.config({"background": "white"})
 
     def exit(self):
         message_to_log = str.format("%s stats window was closed" % self.winName)
         self.parent.add_message_to_log(message_to_log)
+        self.parent.update_connection_list()
         try:
             try:
                 self.pingReq.delete(0, END)

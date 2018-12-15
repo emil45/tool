@@ -6,9 +6,13 @@ import configparser
 
 def ts(s, message, func):
     s.send(message.encode())
-    #s.settimeout(0.2)
-    data = s.recv(1024).decode()
-    j = json.loads(data)
+    answer = ""
+    while True:
+        data = s.recv(1024).decode()
+        answer = answer + data
+        if len(data) == 0 or len(data)<1024:
+            break
+    j = json.loads(answer)
     return j[func]
 
 def create_message(func, params):
@@ -24,7 +28,8 @@ def send_messages(host, func, params='True'):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((host, port))
         m = create_message(func, params)
-        return ts(s, m, func)
+        answer =  ts(s, m, func)
+        return  answer
         s.close()
     except OSError as e:
         if sys.platform.startswith('win'):
