@@ -58,7 +58,7 @@ class AgentService(win32serviceutil.ServiceFramework):
             return False
 
     def run_command(self, command):
-        return subprocess.Popen(command, stdout=subprocess.PIPE).stdout.read()
+        return subprocess.Popen(command, stdout=subprocess.PIPE).stdout.read().decode()
 
     def is_port_free(self, port):
         return len(subprocess.Popen(f'netstat -na | findstr "\<0.0.0.0:{port}\>"',
@@ -97,4 +97,4 @@ class AgentService(win32serviceutil.ServiceFramework):
 
 
 if __name__ == '__main__':
-    win32serviceutil.HandleCommandLine(AppServerSvc)
+    win32serviceutil.HandleCommandLine(AgentService)
